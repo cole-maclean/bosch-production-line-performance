@@ -5,9 +5,6 @@ import pandas
 import random
 import numpy as np
 
-def gaussian(x, mu, sig):
-    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
-
 chunksize = 10 ** 4
 path_data = {}
 feature_data = {}
@@ -50,12 +47,14 @@ for numeric, categorical, date in reader:
                             if feature_indx in feature_data.keys():
                                 feature_data[feature_indx]["total_count"] = feature_data[feature_indx]["total_count"] + 1
                                 feature_data[feature_indx]["defective_count"] =  feature_data[feature_indx]["defective_count"] + defective
+                                feature_data[feature_indx]["defective_rate"] =  feature_data[feature_indx]["defective_count"]/feature_data[feature_indx]["total_count"]
                                 if defective == 1:
                                     feature_data[feature_indx]["defect_values"].append(feature_val)
                                 elif random.random() <= 0.99:
                                     feature_data[feature_indx]["values"].append(feature_val)
                             else:
-                                feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"values":[],"defect_values":[],"feature_type":feature_type}
+                                feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"defective_rate":defective,
+                                                              "values":[],"defect_values":[],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx}
                             path.append({"feature":feature_indx,"timestamp":timestamp,"station":station,"value":feature_val,"feature_type":feature_type,"defective":defective})
                         else:
                             old_timestamp_indx = timestamp_indx
@@ -66,21 +65,16 @@ for numeric, categorical, date in reader:
             if path in path_data.keys():
                 path_data[path]["total_count"] =  path_data[path]["total_count"] + 1
                 path_data[path]["defective_count"] =  path_data[path]["defective_count"] + sorted_path[i]["defective"]
+                path_data[path]["defective_rate"] =  path_data[path]["defective_count"]/path_data[path]["total_count"]
             else:
-                path_data[path] = {"total_count":1,"defective_count":sorted_path[i]["defective"],"start_feature":sorted_path[i]["feature"] ,"end_feature":sorted_path[i+1]["feature"]}
+                path_data[path] = {"total_count":1,"defective_count":sorted_path[i]["defective"],"defective_rate":sorted_path[i]["defective"],
+                                    "start_feature":sorted_path[i]["feature"] ,"end_feature":sorted_path[i+1]["feature"]}
     break
 
-x = np.linspace(-1, 1, 25)
-for feature,data in feature_data.items():
-    if data["feature_type"] == "numeric" and len(data["defect_values"]) >= 0:
-        val_mean = np.mean(data["values"])
-        val_std = np.std(data["values"])
-        defect_mean = np.mean(data["defect_values"])
-        defect_std = np.std(data["defect_values"])
-        data["gauss"] = list(gaussian(x,val_mean,val_std))
-        data["defect_gauss"] = list(gaussian(x,defect_mean,defect_std))
+path_list = [data for data in path_data.values()]
+feature_list = sorted([data for data in feature_data.values()],key=lambda k:k['feature'])
 
 with open('data/path_data.json', 'w') as outfile:
-    json.dump(path_data, outfile)
+    json.dump(path_list, outfile)
 with open('data/feature_data.json', 'w') as outfile:
-    json.dump(feature_data, outfile)
+    json.dump(feature_list, outfile)

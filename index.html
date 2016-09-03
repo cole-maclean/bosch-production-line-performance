@@ -18,22 +18,62 @@ path {
     shape-rendering: crispEdges;
 }
 
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+
 </style>
 <body>
 
+  <p>
+    <label for="nDefectRate" 
+           style="display: inline-block; width: 240px; text-align: right">
+           Defect Rate >= <span id="nDefectRate-value">..</span>
+    </label>
+    <input type="range" min="0" max="0.01" id="nDefectRate" step="0.0005">
+  </p>
+
 <!-- load the d3.js library -->    
 <script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 <script src="colorbrewer.js"></script>
 
 <script>
 
+
 // Set the dimensions of the canvas / graph
 var margin = {top: 30, right: 20, bottom: 30, left: 50},
-    width = 1300 - margin.left - margin.right,
-    height = 810- margin.top - margin.bottom;
+    width = 1503 - margin.left - margin.right,
+    height = 3700- margin.top - margin.bottom;
 
-var feature_width = 23,
-    feature_height = 23;
+var feature_width = 32,
+    feature_height = 23,
+    line_width = 380;
 
 // Parse the date / time
 var parseDate = d3.time.format("%d-%b-%y").parse;
@@ -44,31 +84,25 @@ var svg = d3.select("body")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
 
-var details = svg.append("g")
-                 .attr("class","details")
-                 .attr("width", 300)
-                 .attr("height",500)
-                 .attr("transform", "translate(1200,200)")
 
-function handleDeatilsClick(d){
-    d3.select(".details").remove()
-    details = svg.append("g")
-         .attr("class","details")
-         .attr("width", 300)
-         .attr("height",500)
-         .attr("transform", "translate(1200,200)")
-}
+
+var tip = d3.tip()
+  .attr('class', 'd3-tip')
+  .offset([-10, 0])
+  .html(function(d) {
+    return "<strong>Feature:</strong> <span style='color:red'>" + d.feature + "</br>Total Parts:" + d.total_count + "</br>Defect Rate:" + d.defective_rate + "</br>Feature Type:" + d.feature_type + "</span>";
+  })
+
+svg.call(tip);
+
 
 lines = ["L0","L1","L2","L3"]
-x_offsets = [0,0,0,0]
-y_offsets = [0,0,0,0]
-
 var process = svg.selectAll(".process")
                 .append("g")
                 .attr("class","process")
                 .data(lines).enter().append("rect")
-                .attr("x",function(d,i){return 300*i})
-                .attr("width", 280)
+                .attr("x",function(d,i){return line_width*i})
+                .attr("width", line_width-20)
                 .attr("height", height)
                 .attr("fill","none")
                 .attr("stroke","black")
@@ -80,26 +114,39 @@ var colorScale = d3.scale.quantize()
                    .domain([0.01,0])
 
 
+  d3.select("#nDefectRate")
+  .attr("value","0")
+  .on("change", function() {
+    d3.select("#nDefectRate-value").text(this.value)
+    d3.select("#nDefectRate").attr("value",this.value)
+    d3.json("data/feature_data.json", draw_features);
+  });
 
 // Get the data
-d3.json("data/feature_data.json", function(error, data) {
+function draw_features(error, data) {
+
+    
+    x_offsets = [0,0,0,0]
+    y_offsets = [0,0,0,0]
 
     var max_part_count = d3.max(data, function(d) { return d.total_count; })
     var min_part_count = d3.min(data, function(d) { return d.total_count; })
 
     var sizeScale = d3.scale.log() //uses stroke width to reduce size of rectangle, so the larger the part count the smaller the stroke width, creating a larger rectangle
-                       .range([3,12])
-                       .domain([max_part_count,min_part_count])
+                       .range([3,7])
+                       .domain([max_part_count,max_part_count*0.05])
 
+    svg.selectAll(".features").remove()
     svg.selectAll(".features")
        .append("g")
+       .data(data).enter().append("g")
        .attr("class","features")
-       .data(data).enter().append("rect")
+       .append("rect")
        .attr("x",function(d){
             line_index = lines.indexOf(d.line)
             offset = x_offsets[line_index] % 10
             x_offsets[line_index] = x_offsets[line_index] + 1
-            return (300*line_index + feature_width*offset + 25)
+            return (line_width*line_index + feature_width*offset + 25)
         })
        .attr("y",function(d){
             line_index = lines.indexOf(d.line)
@@ -109,13 +156,24 @@ d3.json("data/feature_data.json", function(error, data) {
         })
        .attr("width", feature_width)
        .attr("height",feature_height)
-       .attr("fill",function(d){return colorScale(d.defective_rate)})
+       .attr("fill",function(d){
+            if (d.defective_rate >= parseFloat(d3.select("#nDefectRate").attr("value"))) {
+              return colorScale(d.defective_rate)
+            }else{
+              return "none"
+            }
+          })       
        .attr("stroke","white")
        .attr("stroke-width",function(d){return sizeScale(d.total_count)})
        .attr("class",function(d){return d.feature})
-       .on("click", function(d){handleDeatilsClick(d)})
+        .on('mouseover', tip.show)
+        .on('mouseout', tip.hide)
 
-});
+       
+
+}
+
+d3.json("data/feature_data.json", draw_features)
 
 /*d3.json("data/path_data.json", function(error, data) {
 

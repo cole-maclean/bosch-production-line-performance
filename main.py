@@ -50,7 +50,7 @@ for numeric, categorical, date in reader:
                                 feature_data[feature_indx]["defective_rate"] =  feature_data[feature_indx]["defective_count"]/feature_data[feature_indx]["total_count"]
                                 if defective == 1:
                                     feature_data[feature_indx]["defect_values"].append(feature_val)
-                                elif random.random() <= 0.99:
+                                elif random.random() <= 0.05:
                                     feature_data[feature_indx]["values"].append(feature_val)
                             else:
                                 feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"defective_rate":defective,
@@ -69,7 +69,6 @@ for numeric, categorical, date in reader:
             else:
                 path_data[path] = {"total_count":1,"defective_count":sorted_path[i]["defective"],"defective_rate":sorted_path[i]["defective"],
                                     "start_feature":sorted_path[i]["feature"] ,"end_feature":sorted_path[i+1]["feature"]}
-    break
 
 path_list = [data for data in path_data.values()]
 feature_list = sorted([data for data in feature_data.values()],key=lambda k:k['feature'])

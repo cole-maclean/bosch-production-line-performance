@@ -57,6 +57,14 @@ path {
     </label>
     <input type="range" min="0" max="0.01" id="nDefectRate" step="0.0005">
   </p>
+  <p>
+    <label for="nPath" 
+           style="display: inline-block; width: 240px; text-align: right">
+           Path = <span id="nPath-value">..</span>
+    </label>
+    <input type="range" min="-1" max="1000" id="nPath" step="1">
+    Parts = <span id="nPath-parts">..</span>
+  </p>
 
 <!-- load the d3.js library -->    
 <script src="https://d3js.org/d3.v3.min.js"></script>
@@ -123,6 +131,22 @@ var colorScale = d3.scale.quantize()
     d3.json("feature_data.json", draw_features);
   });
 
+  d3.select("#nPath")
+  .attr("value","-1")
+  .on("change", function() {
+    d3.select("#nPath-value").text(this.value)
+    d3.select("#nPath").attr("value",this.value)
+    d3.json("feature_data.json", draw_features);
+  });
+
+var paths;
+d3.select("#nPath").attr("value","-1")
+
+d3.json("path_data.json",function(data) {
+  paths = data;
+  d3.select("#nPath").attr("max",paths.length-1)
+});
+
 // Get the data
 function draw_features(error, data) {
 
@@ -158,7 +182,13 @@ function draw_features(error, data) {
        .attr("width", feature_width)
        .attr("height",feature_height)
        .attr("fill",function(d){//hide feature if defect rate < selected defect_rate
-            if (d.defective_rate >= parseFloat(d3.select("#nDefectRate").attr("value"))) {
+            if (parseInt(d3.select("#nPath").attr("value")) ==-1) {
+              if (d.defective_rate >= parseFloat(d3.select("#nDefectRate").attr("value"))){
+                  return colorScale(d.defective_rate)
+              }else{
+                return "none"
+              }
+            }else if (paths[parseInt(d3.select("#nPath").attr("value"))]["path"].indexOf(d.feature) != -1){
               return colorScale(d.defective_rate)
             }else{
               return "none"
@@ -170,40 +200,13 @@ function draw_features(error, data) {
         .on('mouseover', tip.show)
         .on('mouseout', tip.hide)
 
-       
+      if (parseInt(d3.select("#nPath").attr("value")) != -1){
+        d3.select("#nPath-parts").text(paths[parseInt(d3.select("#nPath").attr("value"))]["total_count"])
+      }
 
 }
 
 d3.json("feature_data.json", draw_features)
-
-/*d3.json("data/path_data.json", function(error, data) {
-
-    var max_part_count = d3.max(data, function(d) { return d.total_count; })
-    var min_part_count = d3.min(data, function(d) { return d.total_count; })
-
-    var sizeScale = d3.scale.log() //uses stroke width to reduce size of rectangle, so the larger the part count the smaller the stroke width, creating a larger rectangle
-                       .range([1,3])
-                       .domain([max_part_count,min_part_count])
-
-    svg.selectAll(".paths")
-        .append("g")
-        .attr("class","paths")
-        .data(data).enter().append("line")
-        .attr("stroke",function(d){return colorScale(d.defective_rate)})
-        .attr("stroke-width",function(d){return sizeScale(d.total_count)})
-        .attr("x1",function(d){
-            return parseInt(d3.select("." + d.start_feature).attr("x")) + (feature_width/2)
-        })
-        .attr("y1",function(d){
-            return parseInt(d3.select("." + d.start_feature).attr("y")) + (feature_height/2)
-        })
-        .attr("x2",function(d){
-            return parseInt(d3.select("." + d.end_feature).attr("x")) + (feature_width/2)
-        })
-        .attr("y2",function(d){
-            return parseInt(d3.select("." + d.end_feature).attr("x")) + (feature_width/2)
-        })
-});*/
 
 </script>
 </body>

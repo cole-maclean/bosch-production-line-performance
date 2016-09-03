@@ -6,7 +6,7 @@ import random
 import numpy as np
 import hashlib
 
-chunksize = 10 ** 3 #chunk size for pandas to keep data load within memory constraints
+chunksize = 10 ** 4 #chunk size for pandas to keep data load within memory constraints
 path_data = {}
 edge_data = {}
 feature_data = {}
@@ -52,13 +52,10 @@ for numeric, categorical, date in reader:
                                 feature_data[feature_indx]["total_count"] = feature_data[feature_indx]["total_count"] + 1
                                 feature_data[feature_indx]["defective_count"] =  feature_data[feature_indx]["defective_count"] + defective
                                 feature_data[feature_indx]["defective_rate"] =  feature_data[feature_indx]["defective_count"]/feature_data[feature_indx]["total_count"]
-                                if defective == 1:
-                                    feature_data[feature_indx]["defect_values"].append(feature_val)#store every defective value
-                                elif random.random() <= 0.05:#randomly sample 5% of all data
-                                    feature_data[feature_indx]["values"].append(feature_val)
+                                feature_data[feature_indx]["values"].append(feature_val)
                             else:
                                 feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"defective_rate":defective,
-                                                              "values":[],"defect_values":[],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx}
+                                                              "values":[],"defect_values":[],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx,"feature_val":feature_val}
                             path.append({"feature":feature_indx,"timestamp":timestamp,"station":station,"value":feature_val,"feature_type":feature_type,"defective":defective})
                         else:
                             old_timestamp_indx = timestamp_indx
@@ -83,11 +80,11 @@ for numeric, categorical, date in reader:
                 else:
                     edge_data[edge] = {"total_count":1,"defective_count":sorted_path[i]["defective"],"defective_rate":sorted_path[i]["defective"],
                                         "start_feature":sorted_path[i]["feature"] ,"end_feature":sorted_path[i+1]["feature"]}
-    break
-
+                                        
 edge_list = [data for data in edge_data.values()] #convert to list of dicts for d3.js consumption
 path_list = sorted([data for data in path_data.values()],key=lambda k:k['total_count'],reverse=True)
-feature_list = sorted([data for data in feature_data.values()],key=lambda k:k['feature'])
+#remove feature values to reduce dataset for visulization
+feature_list = sorted([{data_key:feature_data for data_key,feature_data in data.items() if data_key != 'values'} for key,data in feature_data.items()],key=lambda k:k['feature'])
 
 with open('edge_data.json', 'w') as outfile:
     json.dump(edge_list, outfile)
@@ -95,3 +92,5 @@ with open('path_data.json', 'w') as outfile:
     json.dump(path_list, outfile)
 with open('feature_data.json', 'w') as outfile:
     json.dump(feature_list, outfile)
+with open('data/all_feature_data.json', 'w') as outfile:
+    json.dump(feature_data, outfile)

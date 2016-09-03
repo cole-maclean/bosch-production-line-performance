@@ -59,8 +59,8 @@ path {
   </p>
 
 <!-- load the d3.js library -->    
-<script src="http://d3js.org/d3.v3.min.js"></script>
-<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="d3.tip.v0.6.3.js"></script>
 <script src="colorbrewer.js"></script>
 
 <script>
@@ -95,7 +95,7 @@ var tip = d3.tip()
 
 svg.call(tip);
 
-
+//add rectangles for each process line
 lines = ["L0","L1","L2","L3"]
 var process = svg.selectAll(".process")
                 .append("g")
@@ -109,23 +109,24 @@ var process = svg.selectAll(".process")
                 .attr("stroke-width",1)
                 .attr("class",function(d){return d});
 
+//color on green to red on defect_rate
 var colorScale = d3.scale.quantize()
                    .range(colorbrewer.RdYlGn[11])
                    .domain([0.01,0])
 
-
+//defect rate slider
   d3.select("#nDefectRate")
   .attr("value","0")
   .on("change", function() {
     d3.select("#nDefectRate-value").text(this.value)
     d3.select("#nDefectRate").attr("value",this.value)
-    d3.json("data/feature_data.json", draw_features);
+    d3.json("feature_data.json", draw_features);
   });
 
 // Get the data
 function draw_features(error, data) {
 
-    
+    //ofsets for feature x and y coords
     x_offsets = [0,0,0,0]
     y_offsets = [0,0,0,0]
 
@@ -156,7 +157,7 @@ function draw_features(error, data) {
         })
        .attr("width", feature_width)
        .attr("height",feature_height)
-       .attr("fill",function(d){
+       .attr("fill",function(d){//hide feature if defect rate < selected defect_rate
             if (d.defective_rate >= parseFloat(d3.select("#nDefectRate").attr("value"))) {
               return colorScale(d.defective_rate)
             }else{
@@ -173,7 +174,7 @@ function draw_features(error, data) {
 
 }
 
-d3.json("data/feature_data.json", draw_features)
+d3.json("feature_data.json", draw_features)
 
 /*d3.json("data/path_data.json", function(error, data) {
 

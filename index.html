@@ -119,7 +119,7 @@ var colorScale = d3.scale.quantize()
   .on("change", function() {
     d3.select("#nDefectRate-value").text(this.value)
     d3.select("#nDefectRate").attr("value",this.value)
-    d3.json("data/feature_data.json", draw_features);
+    d3.json("feature_data.json", draw_features);
   });
 
 // Get the data

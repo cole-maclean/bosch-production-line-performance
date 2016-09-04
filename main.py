@@ -1,10 +1,14 @@
+import warnings
+warnings.filterwarnings('ignore')
 import json
 import pandas
 import random
 import numpy as np
+import hashlib
 
 chunksize = 10 ** 4 #chunk size for pandas to keep data load within memory constraints
 path_data = {}
+edge_data = {}
 feature_data = {}
 page = 0 #chunk counter
 reader_numeric = pandas.read_csv('data/train/train_numeric.csv', chunksize=chunksize)
@@ -48,32 +52,45 @@ for numeric, categorical, date in reader:
                                 feature_data[feature_indx]["total_count"] = feature_data[feature_indx]["total_count"] + 1
                                 feature_data[feature_indx]["defective_count"] =  feature_data[feature_indx]["defective_count"] + defective
                                 feature_data[feature_indx]["defective_rate"] =  feature_data[feature_indx]["defective_count"]/feature_data[feature_indx]["total_count"]
-                                if defective == 1:
-                                    feature_data[feature_indx]["defect_values"].append(feature_val)#store every defective value
-                                elif random.random() <= 0.05:#randomly sample 5% of all data
-                                    feature_data[feature_indx]["values"].append(feature_val)
+                                feature_data[feature_indx]["values"].append([timestamp,feature_val,defective])
                             else:
                                 feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"defective_rate":defective,
-                                                              "values":[],"defect_values":[],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx}
+                                                              "values":[timestamp,feature_val,defective],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx,"example_val":feature_val}
                             path.append({"feature":feature_indx,"timestamp":timestamp,"station":station,"value":feature_val,"feature_type":feature_type,"defective":defective})
                         else:
                             old_timestamp_indx = timestamp_indx
                             break
         sorted_path = sorted(path, key=lambda k: k['timestamp'])
-        for i in range(len(sorted_path) -1):
-            path = sorted_path[i]["feature"] + "-" + sorted_path[i+1]["feature"]
-            if path in path_data.keys():
-                path_data[path]["total_count"] =  path_data[path]["total_count"] + 1
-                path_data[path]["defective_count"] =  path_data[path]["defective_count"] + sorted_path[i]["defective"]
-                path_data[path]["defective_rate"] =  path_data[path]["defective_count"]/path_data[path]["total_count"]
+        if sorted_path:
+            path_string = "".join([path["feature"] for path in sorted_path])
+            path_hash = hashlib.md5(path_string.encode()).hexdigest()
+            if path_hash in path_data.keys():
+                path_data[path_hash]["total_count"] =  path_data[path_hash]["total_count"] + 1
+                path_data[path_hash]["defective_count"] =  path_data[path_hash]["defective_count"] + sorted_path[0]["defective"]
+                path_data[path_hash]["defective_rate"] =  path_data[path_hash]["defective_count"]/path_data[path_hash]["total_count"]
             else:
-                path_data[path] = {"total_count":1,"defective_count":sorted_path[i]["defective"],"defective_rate":sorted_path[i]["defective"],
-                                    "start_feature":sorted_path[i]["feature"] ,"end_feature":sorted_path[i+1]["feature"]}
+                path_data[path_hash] = {"total_count":1,"defective_count":sorted_path[0]["defective"],"defective_rate":sorted_path[0]["defective"],"path":[path["feature"] for path in sorted_path]}
 
-path_list = [data for data in path_data.values()] #convert to list of dicts for d3.js consumption
-feature_list = sorted([data for data in feature_data.values()],key=lambda k:k['feature'])
+            for i in range(len(sorted_path) -1):
+                edge = sorted_path[i]["feature"] + "-" + sorted_path[i+1]["feature"]
+                if edge in edge_data.keys():
+                    edge_data[edge]["total_count"] =  edge_data[edge]["total_count"] + 1
+                    edge_data[edge]["defective_count"] =  edge_data[edge]["defective_count"] + sorted_path[i]["defective"]
+                    edge_data[edge]["defective_rate"] =  edge_data[edge]["defective_count"]/edge_data[edge]["total_count"]
+                else:
+                    edge_data[edge] = {"total_count":1,"defective_count":sorted_path[i]["defective"],"defective_rate":sorted_path[i]["defective"],
+                                        "start_feature":sorted_path[i]["feature"] ,"end_feature":sorted_path[i+1]["feature"]}
+                                        
+edge_list = [data for data in edge_data.values()] #convert to list of dicts for d3.js consumption
+path_list = sorted([data for data in path_data.values()],key=lambda k:k['total_count'],reverse=True)
+#remove feature values to reduce dataset for visulization
+feature_list = sorted([{data_key:feature_data for data_key,feature_data in data.items() if data_key != 'values'} for key,data in feature_data.items()],key=lambda k:k['feature'])
 
-with open('data/path_data.json', 'w') as outfile:
+with open('edge_data.json', 'w') as outfile:
+    json.dump(edge_list, outfile)
+with open('path_data.json', 'w') as outfile:
     json.dump(path_list, outfile)
-with open('data/feature_data.json', 'w') as outfile:
+with open('feature_data.json', 'w') as outfile:
     json.dump(feature_list, outfile)
+with open('data/all_feature_data.json', 'w') as outfile:
+    json.dump(feature_data, outfile)

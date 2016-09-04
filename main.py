@@ -6,6 +6,9 @@ import random
 import numpy as np
 import hashlib
 
+with open('features_under_1000.json', 'r') as infile: #load list of features having less then 1000 samples
+    features_under_1000 = json.load(infile)
+
 chunksize = 10 ** 4 #chunk size for pandas to keep data load within memory constraints
 path_data = {}
 edge_data = {}
@@ -52,13 +55,14 @@ for numeric, categorical, date in reader:
                                 feature_data[feature_indx]["total_count"] = feature_data[feature_indx]["total_count"] + 1
                                 feature_data[feature_indx]["defective_count"] =  feature_data[feature_indx]["defective_count"] + defective
                                 feature_data[feature_indx]["defective_rate"] =  feature_data[feature_indx]["defective_count"]/feature_data[feature_indx]["total_count"]
-                                feature_data[feature_indx]["values"].append([timestamp,feature_val,defective])
+                                if defective == 1 or feature_indx in features_under_1000 or random.random() <= 0.1: #store all data for defects and features with < 1000 samples, otherwise downsample to 10%
+                                    feature_data[feature_indx]["values"].append([timestamp,feature_val,defective])
                             else:
                                 feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"defective_rate":defective,
                                                               "values":[timestamp,feature_val,defective],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx,"example_val":feature_val}
                             path.append({"feature":feature_indx,"timestamp":timestamp,"station":station,"value":feature_val,"feature_type":feature_type,"defective":defective})
                         else:
-                            old_timestamp_indx = timestamp_indx
+                            old_timestamp_indx = timestamp_indx #store new timestamp to old and break loop if null data found for current timestamp
                             break
         sorted_path = sorted(path, key=lambda k: k['timestamp'])
         if sorted_path:

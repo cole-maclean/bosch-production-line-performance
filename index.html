@@ -167,11 +167,13 @@ function draw_features(error, data) {
                        .domain([max_part_count,max_part_count*0.05])
 
     svg.selectAll(".features").remove()
-    svg.selectAll(".features")
-       .append("g")
-       .data(data).enter().append("g")
-       .attr("class","features")
-       .append("rect")
+    var features = svg.selectAll(".features")
+       .append("g");
+
+    var feature = features.data(data).enter().append("g")
+       .attr("class","features");
+
+    var rects = feature.append("rect")
        .attr("x",function(d){
             line_index = lines.indexOf(d.line)
             offset = x_offsets[line_index] % 10
@@ -205,10 +207,33 @@ function draw_features(error, data) {
         .on('mouseover', tip.show)
         .on('mouseout', tip.hide)
 
+    x_offsets = [0,0,0,0]
+    y_offsets = [0,0,0,0]
+
+    var rects = feature.append("text")
+       .attr("x",function(d){
+            line_index = lines.indexOf(d.line)
+            offset = x_offsets[line_index] % 10
+            x_offsets[line_index] = x_offsets[line_index] + 1
+            return (line_width*line_index + feature_width*offset + 30)
+        })
+       .attr("y",function(d){
+            line_index = lines.indexOf(d.line)
+            offset = Math.floor(y_offsets[line_index] / 10)
+            y_offsets[line_index] = y_offsets[line_index] + 1
+            return (feature_height*offset + 40)
+        })
+       .text(function(d){
+          if (parseInt(d3.select("#nPath").attr("value")) != -1) {
+            if (paths[parseInt(d3.select("#nPath").attr("value"))]["path"].indexOf(d.feature) != -1){
+              return paths[parseInt(d3.select("#nPath").attr("value"))]["path"].indexOf(d.feature);
+            }
+          }
+       })
+
       if (parseInt(d3.select("#nPath").attr("value")) != -1){
         d3.select("#nPath-parts").text(paths[parseInt(d3.select("#nPath").attr("value"))]["total_count"])
       }
-
 }
 
 d3.json("feature_data.json", draw_features)

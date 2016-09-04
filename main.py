@@ -52,10 +52,10 @@ for numeric, categorical, date in reader:
                                 feature_data[feature_indx]["total_count"] = feature_data[feature_indx]["total_count"] + 1
                                 feature_data[feature_indx]["defective_count"] =  feature_data[feature_indx]["defective_count"] + defective
                                 feature_data[feature_indx]["defective_rate"] =  feature_data[feature_indx]["defective_count"]/feature_data[feature_indx]["total_count"]
-                                feature_data[feature_indx]["values"].append(feature_val)
+                                feature_data[feature_indx]["values"].append([timestamp,feature_val,defective])
                             else:
                                 feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"defective_rate":defective,
-                                                              "values":[],"defect_values":[],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx,"feature_val":feature_val}
+                                                              "values":[timestamp,feature_val,defective],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx,"example_val":feature_val}
                             path.append({"feature":feature_indx,"timestamp":timestamp,"station":station,"value":feature_val,"feature_type":feature_type,"defective":defective})
                         else:
                             old_timestamp_indx = timestamp_indx

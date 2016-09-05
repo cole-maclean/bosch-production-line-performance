@@ -60,7 +60,7 @@ path {
   <p>
     <label for="nPath" 
            style="display: inline-block; width: 240px; text-align: right">
-           Path = <span id="nPath-value">..</span>
+           Path = <span id="nPath-value"><input type="text" id="nPathInput"></span>
     </label>
     <input type="range" min="-1" max="1000" id="nPath" step="1">
     Parts = <span id="nPath-parts">..</span>
@@ -139,7 +139,15 @@ var colorScale = d3.scale.quantize()
   d3.select("#nPath")
   .attr("value","-1")
   .on("change", function() {
-    d3.select("#nPath-value").text(this.value)
+    d3.select("#nPathInput").attr("value",this.value)
+    d3.select("#nPath").attr("value",this.value)
+    d3.json("feature_data.json", draw_features);
+  });
+
+  d3.select("#nPathInput")
+  .attr("value","-1")
+  .on("change", function() {
+    d3.select("#nPathInput").attr("value",this.value)
     d3.select("#nPath").attr("value",this.value)
     d3.json("feature_data.json", draw_features);
   });

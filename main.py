@@ -9,7 +9,7 @@ import hashlib
 with open('features_under_1000.json', 'r') as infile: #load list of features having less then 1000 samples
     features_under_1000 = json.load(infile)
 
-chunksize = 10 ** 4 #chunk size for pandas to keep data load within memory constraints
+chunksize = 10 ** 4#chunk size for pandas to keep data load within memory constraints
 path_data = {}
 edge_data = {}
 feature_data = {}
@@ -46,7 +46,7 @@ for numeric, categorical, date in reader:
                             feature_val = categorical_chunk[feature_indx][index]
                             feature_type = "categorical"
                         elif feature_indx in num_columns:
-                            feature_val = numeric_chunk[feature_indx][index]
+                            feature_val = round(numeric_chunk[feature_indx][index],5)#round to 5 decimals to reduce size
                             feature_type = "numeric"
                         else:
                             feature_val = None
@@ -55,11 +55,11 @@ for numeric, categorical, date in reader:
                                 feature_data[feature_indx]["total_count"] = feature_data[feature_indx]["total_count"] + 1
                                 feature_data[feature_indx]["defective_count"] =  feature_data[feature_indx]["defective_count"] + defective
                                 feature_data[feature_indx]["defective_rate"] =  feature_data[feature_indx]["defective_count"]/feature_data[feature_indx]["total_count"]
-                                if defective == 1 or feature_indx in features_under_1000 or random.random() <= 0.1: #store all data for defects and features with < 1000 samples, otherwise downsample to 10%
-                                    feature_data[feature_indx]["values"].append([timestamp,feature_val,defective])
+                                if defective == 1 or feature_indx in features_under_1000 or random.random() <= 0.25: #store all data for defects and features with < 1000 samples, otherwise downsample to 25%
+                                    feature_data[feature_indx]["values"].append([part_id,timestamp,feature_val,defective])
                             else:
                                 feature_data[feature_indx] = {"total_count":1,"defective_count":defective,"defective_rate":defective,
-                                                              "values":[timestamp,feature_val,defective],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx,"example_val":feature_val}
+                                                              "values":[[part_id,timestamp,feature_val,defective]],"feature_type":feature_type,"station":station,"line":line,"feature":feature_indx,"example_val":feature_val}
                             path.append({"feature":feature_indx,"timestamp":timestamp,"station":station,"value":feature_val,"feature_type":feature_type,"defective":defective})
                         else:
                             old_timestamp_indx = timestamp_indx #store new timestamp to old and break loop if null data found for current timestamp
@@ -84,7 +84,7 @@ for numeric, categorical, date in reader:
                 else:
                     edge_data[edge] = {"total_count":1,"defective_count":sorted_path[i]["defective"],"defective_rate":sorted_path[i]["defective"],
                                         "start_feature":sorted_path[i]["feature"] ,"end_feature":sorted_path[i+1]["feature"]}
-                                        
+                    
 edge_list = [data for data in edge_data.values()] #convert to list of dicts for d3.js consumption
 path_list = sorted([data for data in path_data.values()],key=lambda k:k['total_count'],reverse=True)
 #remove feature values to reduce dataset for visulization

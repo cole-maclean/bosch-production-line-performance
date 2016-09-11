@@ -1,2 +1,4 @@
 *.ini
 data/
+submission/
+models/

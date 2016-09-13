@@ -6,8 +6,9 @@ import random
 import numpy as np
 import hashlib
 
+filtered_features = ["Unnamed: 0","Id"]
 
-def parse_data():
+def parse_train_data(percent):
     chunksize = 10 ** 4#chunk size for pandas to keep data load within memory constraints
     path_data = {}
     edge_data = {}
@@ -36,7 +37,7 @@ def parse_data():
             defective = int(numeric_chunk['Response'][index])
             #iterate over ever part in the date file, using the date features to lookup the associated numeric and categorical feature belonging to this timestamp
             for feature,timestamp in part.items():
-                if feature != "Unnamed: 0" and feature != "Id":
+                if feature not in filtered_features:
                     line = feature.split("_")[0]
                     station = feature.split("_")[1]
                     if pandas.notnull(timestamp):
@@ -71,7 +72,7 @@ def parse_data():
                             else:
                                 old_timestamp_indx = timestamp_indx
                                 break
-            if random.random() <= 0.20 or defective == 1:
+            if random.random() <= percent or defective == 1:
                 part_data.append({'features':feature_list,'values':value_list,'timestamps':timestamp_list,'defective':defective})
             sorted_path = sorted(path, key=lambda k: k['timestamp'])
             if sorted_path:
@@ -103,12 +104,55 @@ def parse_data():
         json.dump(edge_list, outfile)
     with open('path_data.json', 'w') as outfile:
         json.dump(path_list, outfile)
-    with open('feature_data.json', 'w') as outfile:
-        json.dump(all_feature_list, outfile)
-    with open('data/all_feature_data.json', 'w') as outfile:
-        json.dump(feature_data, outfile)
     with open('data/part_data.json', 'w') as outfile:
         json.dump(part_data, outfile)
 
+def parse_test_data():
+    chunksize = 10 ** 4#
+    page = 0 #chunk counter
+    reader_numeric = pd.read_csv('data/test/test_numeric.csv', chunksize=chunksize)
+    reader_categorical = pd.read_csv('data/test/test_categorical.csv', chunksize=chunksize)
+    reader_date = pd.read_csv('data/test/test_date.csv', chunksize=chunksize)
+    reader = zip(reader_numeric, reader_categorical, reader_date) #combine 3 datasets
+    for numeric, categorical, date in reader:
+        print ("page " + str(page))
+        page = page + 1
+        numeric_chunk = pd.DataFrame(numeric)
+        categorical_chunk = pd.DataFrame(categorical)
+        date_chunk = pd.DataFrame(date)
+        cat_columns = list(categorical_chunk.columns.values) #store list of categorical and numeric feature labels
+        num_columns = list(numeric_chunk.columns.values)
+        for index, part in date_chunk.iterrows():
+            feature_list = []
+            value_list = {}
+            timestamp_list = {}
+            part_id = int(part['Id'])
+            old_timestamp_indx = 0
+            for feature,timestamp in part.items():
+                if feature not in filtered_features:
+                    if pd.notnull(timestamp):
+                        split_feature = feature.split("D")
+                        timestamp_indx = int(split_feature[1])#get the index of the timestamp feature to be used as lookup for cat and num features
+                        for i in reversed(range(old_timestamp_indx + 1, timestamp_indx)): #cat and num features are timestamped by the date feature index immediately following the cat or num feature index, 
+                                                                                          #iterate backwards from current timestamp and look up cat and numeric features until both are null or until the previous timestamp
+                            feature_indx = split_feature[0] + "F" + str(i)
+                            if feature_indx in cat_columns:
+                                if pd.notnull(categorical_chunk[feature_indx][index]):
+                                    feature_val = categorical_chunk[feature_indx][index].split("T")[1] #trim T off categorical value to induce numeric
+                                else:
+                                    feature_val = categorical_chunk[feature_indx][index]
+                                feature_type = "categorical"
+                            elif feature_indx in num_columns:
+                                feature_val = numeric_chunk[feature_indx][index]
+                                feature_type = "numeric"
+                            else:
+                                feature_val = None
+                            if pd.notnull(feature_val):
+                                feature_list.append(feature_indx)
+                                value_list[feature_indx] = feature_val
+                                timestamp_list[feature_indx] = timestamp
+                            else:
+                                old_timestamp_indx = timestamp_indx
+                                break
 
-parse_data()
+parse_train_data(0.2)

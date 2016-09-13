@@ -76,18 +76,251 @@
                     "from sklearn.preprocessing import Imputer",
                     "from sklearn.cross_validation import cross_val_score",
                     "",
-                    "import itertools"
+                    "import itertools",
+                    "import csv"
                 ]
             },
             "output": {
                 "state": {},
                 "selectedType": "Hidden",
                 "pluginName": "Python3",
-                "shellId": "21EA35D8FB0B43338D6F5CBB2FEFCBBC",
-                "elapsedTime": 799
+                "shellId": "8E05222B8C3D4A4A8B083176D3990994",
+                "elapsedTime": 5264
             },
             "evaluatorReader": true,
-            "lineCount": 28
+            "lineCount": 29
+        },
+        {
+            "id": "codegZb5MN",
+            "type": "code",
+            "evaluator": "Python3",
+            "input": {
+                "body": [
+                    "import os",
+                    "os.chdir(\"C:/Users/macle/Desktop/kaggle/bosch-production-line-performance\")",
+                    "",
+                    "#import model",
+                    "import importlib",
+                    "importlib.reload(model)",
+                    "from model import *",
+                    "",
+                    "test_model = model.load_model('models/1000_subset_3_type_model.pkl')"
+                ]
+            },
+            "output": {
+                "state": {},
+                "selectedType": "Hidden",
+                "pluginName": "Python3",
+                "shellId": "5AC51AF14BBF4F4D8D87634FE5072BC7",
+                "elapsedTime": 575
+            },
+            "evaluatorReader": true,
+            "lineCount": 9
+        },
+        {
+            "id": "codery5hTb",
+            "type": "code",
+            "evaluator": "Python3",
+            "input": {
+                "body": [
+                    "new_model = model.BoschModel(3,1000)",
+                    "new_model.models = test_model.models"
+                ]
+            },
+            "output": {
+                "state": {},
+                "selectedType": "Hidden",
+                "pluginName": "Python3",
+                "shellId": "5AC51AF14BBF4F4D8D87634FE5072BC7",
+                "elapsedTime": 603
+            },
+            "evaluatorReader": true,
+            "lineCount": 2
+        },
+        {
+            "id": "codeNCQXqw",
+            "type": "code",
+            "evaluator": "Python3",
+            "input": {
+                "body": [
+                    "print(new_model.models[\"0\"].best_estimator_.named_steps['clf'].booster().get_fscore())"
+                ]
+            },
+            "output": {
+                "state": {},
+                "result": {
+                    "type": "Results",
+                    "outputdata": [
+                        {
+                            "type": "out",
+                            "value": "{'f864': 2, 'f280': 6, 'f830': 10, 'f326': 1, 'f866': 6, 'f798': 6, 'f852': 1, 'f822': 2, 'f79': 1, 'f431': 1, 'f816': 6, 'f910': 11, 'f753': 3, 'f828': 3, 'f810': 12, 'f923': 1, 'f911': 15, 'f6': 1, 'f568': 3, 'f802': 4, 'f848': 3, 'f459': 2, 'f476': 2, 'f445': 2, 'f295': 1, 'f844': 13, 'f455': 2, 'f2': 1, 'f328': 2, 'f547': 1, 'f468': 2, 'f808': 5, 'f34': 1, 'f820': 3, 'f882': 2, 'f748': 1, 'f870': 3, 'f840': 5, 'f285': 1, 'f914': 10, 'f794': 3, 'f894': 5, 'f814': 9, 'f834': 5, 'f898': 5, 'f774': 1, 'f281': 1, 'f924': 1, 'f862': 3, 'f884': 1, 'f752': 3, 'f327': 3, 'f926': 1, 'f4': 1, 'f511': 1, 'f324': 3, 'f874': 4, 'f49': 1, 'f469': 2, 'f545': 1, 'f868': 4, 'f792': 5, 'f472': 4, 'f442': 2, 'f913': 1, 'f443': 1, 'f836': 6, 'f460': 1, 'f571': 1, 'f826': 7, 'f427': 2, 'f806': 10, 'f477': 2, 'f300': 1, 'f804': 4, 'f441': 1, 'f471': 2, 'f909': 2, 'f334': 1, 'f860': 5, 'f896': 1, 'f548': 1, 'f3': 2, 'f846': 1, 'f502': 1, 'f426': 2, 'f543': 1, 'f474': 1, 'f456': 6, 'f878': 3, 'f458': 4, 'f928': 2, 'f812': 4, 'f457': 7, 'f76': 1, 'f838': 3, 'f796': 6, 'f35': 2, 'f747': 1, 'f800': 3, 'f872': 4, 'f478': 5, 'f832': 10, 'f0': 1, 'f429': 2, 'f818': 9, 'f279': 5}\n"
+                        }
+                    ]
+                },
+                "selectedType": "Results",
+                "pluginName": "Python3",
+                "shellId": "5AC51AF14BBF4F4D8D87634FE5072BC7",
+                "elapsedTime": 269,
+                "height": 55
+            },
+            "evaluatorReader": true,
+            "lineCount": 1
+        },
+        {
+            "id": "codefMMK3u",
+            "type": "code",
+            "evaluator": "Python3",
+            "input": {
+                "body": [
+                    "def get_top_n_features(n):",
+                    "    top_n_features = {}",
+                    "    for part_type,model in new_model.models.items():",
+                    "        scores = model.best_estimator_.named_steps['clf'].booster().get_fscore()",
+                    "        sorted_features = sorted(scores.items(), key=lambda x: x[1],reverse=True)",
+                    "        top_n_features[part_type] = [feature_tuple[0] for feature_tuple in sorted_features[0:min(n,len(sorted_features)-1)]]",
+                    "    top_n_features['all_top_features'] = list(set([feature for part_type in top_n_features.keys() for feature in top_n_features[part_type]]))",
+                    "    return top_n_features"
+                ]
+            },
+            "output": {
+                "state": {},
+                "selectedType": "Hidden",
+                "pluginName": "Python3",
+                "shellId": "5AC51AF14BBF4F4D8D87634FE5072BC7",
+                "elapsedTime": 325,
+                "dataresult": [
+                    "__class__",
+                    "__copy__",
+                    "__deepcopy__",
+                    "__del__",
+                    "__delattr__",
+                    "__dict__",
+                    "__dir__",
+                    "__doc__",
+                    "__eq__",
+                    "__format__",
+                    "__ge__",
+                    "__getattribute__",
+                    "__getstate__",
+                    "__gt__",
+                    "__hash__",
+                    "__init__",
+                    "__le__",
+                    "__lt__",
+                    "__module__",
+                    "__ne__",
+                    "__new__",
+                    "__reduce__",
+                    "__reduce_ex__",
+                    "__repr__",
+                    "__setattr__",
+                    "__setstate__",
+                    "__sizeof__",
+                    "__str__",
+                    "__subclasshook__",
+                    "__weakref__",
+                    "_validate_features",
+                    "best_iteration",
+                    "best_ntree_limit",
+                    "boost",
+                    "copy",
+                    "dump_model",
+                    "eval",
+                    "eval_set",
+                    "feature_names",
+                    "feature_types",
+                    "get_dump",
+                    "get_fscore",
+                    "handle",
+                    "load_model",
+                    "predict",
+                    "save_model",
+                    "save_raw",
+                    "set_param",
+                    "update"
+                ]
+            },
+            "evaluatorReader": true,
+            "lineCount": 8
+        },
+        {
+            "id": "codei59brN",
+            "type": "code",
+            "evaluator": "Python3",
+            "input": {
+                "body": [
+                    "get_top_n_features(10)"
+                ]
+            },
+            "output": {
+                "state": {},
+                "result": {
+                    "type": "Results",
+                    "outputdata": [
+                        {
+                            "type": "out",
+                            "value": "[('f560', 7), ('f524', 6), ('f300', 5), ('f568', 4), ('f567', 3), ('f553', 3), ('f301', 3), ('f572', 3), ('f569', 3), ('f545', 2), ('f536', 2), ('f517', 2), ('f546', 2), ('f520', 2), ('f540', 2), ('f558', 2), ('f549', 2), ('f516', 2), ('f552', 1), ('f480', 1), ('f304', 1), ('f224', 1), ('f547', 1), ('f469', 1), ('f474', 1), ('f1', 1), ('f395', 1), ('f526', 1), ('f2', 1), ('f472', 1), ('f530', 1), ('f513', 1), ('f571', 1), ('f534', 1), ('f586', 1), ('f5', 1), ('f531', 1), ('f581', 1), ('f478', 1), ('f284', 1), ('f377', 1), ('f521', 1), ('f48', 1)]\n[('f911', 15), ('f844', 13), ('f810', 12), ('f910', 11), ('f830', 10), ('f914', 10), ('f806', 10), ('f832', 10), ('f814', 9), ('f818', 9), ('f826', 7), ('f457', 7), ('f280', 6), ('f866', 6), ('f798', 6), ('f816', 6), ('f836', 6), ('f456', 6), ('f796', 6), ('f808', 5), ('f840', 5), ('f894', 5), ('f834', 5), ('f898', 5), ('f792', 5), ('f860', 5), ('f478', 5), ('f279', 5), ('f802', 4), ('f874', 4), ('f868', 4), ('f472', 4), ('f804', 4), ('f458', 4), ('f812', 4), ('f872', 4), ('f753', 3), ('f828', 3), ('f568', 3), ('f848', 3), ('f820', 3), ('f870', 3), ('f794', 3), ('f862', 3), ('f752', 3), ('f327', 3), ('f324', 3), ('f878', 3), ('f838', 3), ('f800', 3), ('f864', 2), ('f822', 2), ('f459', 2), ('f476', 2), ('f445', 2), ('f455', 2), ('f328', 2), ('f468', 2), ('f882', 2), ('f469', 2), ('f442', 2), ('f427', 2), ('f477', 2), ('f471', 2), ('f909', 2), ('f3', 2), ('f426', 2), ('f928', 2), ('f35', 2), ('f429', 2), ('f326', 1), ('f852', 1), ('f79', 1), ('f431', 1), ('f923', 1), ('f6', 1), ('f295', 1), ('f2', 1), ('f547', 1), ('f34', 1), ('f748', 1), ('f285', 1), ('f774', 1), ('f281', 1), ('f924', 1), ('f884', 1), ('f926', 1), ('f4', 1), ('f511', 1), ('f49', 1), ('f545', 1), ('f913', 1), ('f443', 1), ('f460', 1), ('f571', 1), ('f300', 1), ('f441', 1), ('f334', 1), ('f896', 1), ('f548', 1), ('f846', 1), ('f502', 1), ('f543', 1), ('f474', 1), ('f76', 1), ('f747', 1), ('f0', 1)]\n[]\n"
+                        }
+                    ],
+                    "payload": "<div class=\"output_subarea output_text\"><pre>{'0': ['f911',\n  'f844',\n  'f810',\n  'f910',\n  'f830',\n  'f914',\n  'f806',\n  'f832',\n  'f814',\n  'f818'],\n '1': [],\n '2': ['f560',\n  'f524',\n  'f300',\n  'f568',\n  'f567',\n  'f553',\n  'f301',\n  'f572',\n  'f569',\n  'f545'],\n 'all_top_features': ['f567',\n  'f810',\n  'f818',\n  'f844',\n  'f830',\n  'f911',\n  'f560',\n  'f914',\n  'f524',\n  'f301',\n  'f806',\n  'f814',\n  'f568',\n  'f553',\n  'f572',\n  'f300',\n  'f569',\n  'f545',\n  'f832',\n  'f910']}</pre></div>"
+                },
+                "selectedType": "Results",
+                "pluginName": "Python3",
+                "shellId": "5AC51AF14BBF4F4D8D87634FE5072BC7",
+                "elapsedTime": 201,
+                "dataresult": {
+                    "0": [
+                        "f911",
+                        "f844",
+                        "f810",
+                        "f910",
+                        "f830",
+                        "f914",
+                        "f806",
+                        "f832",
+                        "f814",
+                        "f818"
+                    ],
+                    "1": [],
+                    "2": [
+                        "f560",
+                        "f524",
+                        "f300",
+                        "f568",
+                        "f567",
+                        "f553",
+                        "f301",
+                        "f572",
+                        "f569",
+                        "f545"
+                    ],
+                    "all_top_features": [
+                        "f567",
+                        "f810",
+                        "f818",
+                        "f844",
+                        "f830",
+                        "f911",
+                        "f560",
+                        "f914",
+                        "f524",
+                        "f301",
+                        "f806",
+                        "f814",
+                        "f568",
+                        "f553",
+                        "f572",
+                        "f300",
+                        "f569",
+                        "f545",
+                        "f832",
+                        "f910"
+                    ]
+                },
+                "height": 743
+            },
+            "evaluatorReader": true,
+            "lineCount": 1
         },
         {
             "id": "codeVWct2h",
@@ -249,7 +482,7 @@
                 "pluginName": "Python3",
                 "shellId": "2627505FE80B4BC98453588427AF2614",
                 "elapsedTime": 204,
-                "height": 81
+                "height": 155
             },
             "evaluatorReader": true,
             "lineCount": 2
@@ -316,7 +549,7 @@
                 "pluginName": "Python3",
                 "shellId": "0E0C74155ECF4E86AFC8067089F662C7",
                 "elapsedTime": 223481,
-                "height": 87
+                "height": 161
             },
             "evaluatorReader": true,
             "lineCount": 35
@@ -338,7 +571,7 @@
                 "shellId": "0E0C74155ECF4E86AFC8067089F662C7",
                 "elapsedTime": 201,
                 "dataresult": 471,
-                "height": 53
+                "height": 127
             },
             "evaluatorReader": true,
             "lineCount": 1
@@ -923,7 +1156,7 @@
                     0,
                     0
                 ],
-                "height": 55
+                "height": 129
             },
             "evaluatorReader": true,
             "lineCount": 8
@@ -2700,7 +2933,8 @@
                     null,
                     null,
                     0
-                ]
+                ],
+                "height": 88
             },
             "evaluatorReader": true,
             "lineCount": 88

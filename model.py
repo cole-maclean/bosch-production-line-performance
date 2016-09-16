@@ -113,7 +113,7 @@ class BoschModel():
         if self.part_type_clf == None:
             self.classify_part_types()
 
-        part_data = load_json('data/part_data.json')
+        part_data = load_json('data/filtered_train_part_data.json')
         part_type_features = {}
 
         for i,part in enumerate(part_data[0:self.subset]):
@@ -132,11 +132,10 @@ class BoschModel():
         for part_type in part_type_features.keys():
             self.part_types.append(part_type)
             self.all_part_type_features[part_type] = [self.feature_list[i] for i,feature_bool in enumerate(part_type_features[part_type]) if feature_bool ==1]
-            print(self.all_part_type_features[part_type])
             print ("Part Type " + part_type + " has " + str(len(self.all_part_type_features[part_type])) + " features")
 
     def build_model_data(self):
-        part_data = load_json('data/part_data.json')
+        part_data = load_json('data/filtered_train_part_data.json')
         part_type_data = {}
         for i,part in enumerate(part_data[0:self.subset]):
             if i % 10000 == 0:
@@ -244,10 +243,10 @@ if  __name__ == "__main__":
                   'clf__seed': [1337]}
 
     # for n in range(3,12,3):
-    #     test_model = BoschModel(n,200000)
-    #     test_model.classify_part_types()
-    #     test_model.build_part_type_features()
-    #     test_model.build_model_data()
-    #     test_model.build_part_type_models(parameters)
-    #     test_model.save_model()
-    #     test_model.build_submission()
+    test_model = BoschModel(3,10000)
+    test_model.classify_part_types()
+    test_model.build_part_type_features()
+    test_model.build_model_data()
+    test_model.build_part_type_models(parameters)
+    test_model.save_model()
+        #test_model.build_submission()

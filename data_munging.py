@@ -1,16 +1,24 @@
 import warnings
 warnings.filterwarnings('ignore')
 import json
+import csv
 import pandas as pd
 import random
 import numpy as np
 import hashlib
 import math
 import ijson
+import numbers
+from multiprocessing import Pool
+import time
+import itertools
+
+
+with open('feature_list.json', 'r') as infile:
+    feature_list = json.load(infile)
 
 def parse_data(dataset):
-    part_data_chunks = {}
-    chunksize = 10 ** 4#
+    chunksize = 10 ** 5
     page = 0 #chunk counter
     reader_numeric = pd.read_csv('data/' + dataset + '/' + dataset + '_numeric.csv', chunksize=chunksize)
     reader_categorical = pd.read_csv('data/' + dataset + '/' + dataset + '_categorical.csv', chunksize=chunksize)
@@ -18,7 +26,6 @@ def parse_data(dataset):
     reader = zip(reader_numeric, reader_categorical, reader_date) #combine 3 datasets
     for numeric, categorical, date in reader:
         page = page + 1
-        part_data_chunks[str(page)] = []
         print ("page " + str(page))
         numeric_chunk = pd.DataFrame(numeric)
         categorical_chunk = pd.DataFrame(categorical)
@@ -61,33 +68,62 @@ def parse_data(dataset):
                                 old_timestamp_indx = timestamp_indx
                                 break
             if dataset == 'train':
-                part_data_chunks[str(page)].append({'part_id':part_id,'features':feature_list,'values':value_list,'timestamps':timestamp_list,'defective':int(numeric_chunk['Response'][index])})
+                part_data = {"part_id":part_id,"features":feature_list,"values":value_list,"timestamps":timestamp_list,"defective":int(numeric_chunk['Response'][index])}
             elif dataset == 'test':
-                part_data_chunks[str(page)].append({'part_id':part_id,'features':feature_list,'values':value_list,'timestamps':timestamp_list})
+                part_data = {"part_id":part_id,"features":feature_list,"values":value_list,"timestamps":timestamp_list}
             else:
-                print (dataset + ' ataset does not exist')
+                print (dataset + ' dataset does not exist')
+                break
+            if part_data:
+                with open('data/train_part_data.csv', 'a',newline='') as csv_file:
+                    writer = csv.writer(csv_file)
+                    writer.writerow([part_data])
         break
-    with open('data/' + dataset + '_part_data.json', 'w') as outfile:
-        json.dump(part_data_chunks, outfile)
 
-def filter_features(feature_list,dataset,n_chunks):
-    part_data = []
-    for n in range(1,n_chunks+1):
-        with open('data/' + dataset + '_part_data.json') as f:
-            json_obj = ijson.items(f,n_chunk)
-            for part in json_obj:
-                print(part)
-                part['features'] = [feature for feature in part['features'] if feature in feature_list]
-                part['values'] = {feature:value for feature,value in part['values'] if feature in feature_list}
-                part['timestamps'] = {feature:timestamp for feature,timestamp in part['timestamps'] if feature in feature_list}
-                part_data.append(part)
-    with open('data/' + dataset + '_part_data.json', 'w') as outfile:
-        json.dump(part_data, outfile)
+def filter_features(part):
+    #iterate over accepted features and try to find them in part feature data. This method much faster then checking if feature exists via list comprehension in total feature list of part data.
+    tmp_part_features = []
+    tmp_part_values = {}
+    tmp_part_timestamps = {}
+    for feature in feature_list:
+        try:
+            tmp_part_values[feature] = part['values'][feature]
+            tmp_part_timestamps[feature] = part['timestamps'][feature]
+            tmp_part_features.append(feature)
+        except KeyError:
+            pass
+    part['features'] = tmp_part_features
+    part['values'] = tmp_part_values
+    part['timestamps'] = tmp_part_timestamps
+    return part
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
 
 parse_data('train')
-#parse_test_data()
+part_data = []
+with open('data/train_part_data.csv', 'r',newline='') as csv_file:
+    reader = csv.reader(csv_file)
+    for part in reader:
+        if part:
+            filtered_part = filter_features(json.loads(part[0].replace("'",'"')))
+part_data.append(filtered_part)
+with open('data/filtered_train_part_data.json', 'w') as outfile:
+    json.dump(part_data, outfile)
 
-with open('feature_list.json', 'r') as infile:
-    feature_list = set(json.load(infile)) #feature lookup list, set lookups faster then pure lists
-filter_features(feature_list,'train',118)
-#filter_features('data/test_part_data.json',feature_list,'test',118)
+# if __name__ == '__main__':
+#     start_time = time.time()
+#     n_processes = 1
+#     chunked_data = []
+#     for chunk in chunks(range(1,2),n_processes):
+#         p = Pool(n_processes)
+#         pool_params = [(str(chunk_indx),'train') for chunk_indx in chunk]
+#         chunked_data.append(p.starmap(filter_features, pool_params))
+#     print ("flattening data")
+#     flat_data = [part_data for chunk in chunked_data for part_data in chunk]
+#     with open('data/filtered_train_part_data.json', 'w') as outfile:
+#         json.dump(flat_data,outfile)
+#     print("--- %s seconds ---" % (time.time() - start_time))
